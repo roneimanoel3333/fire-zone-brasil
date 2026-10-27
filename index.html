@@ -2,127 +2,174 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fire Zone Brasil - Battle Royale</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Fire Zone Brasil - Battle Royale PWA</title>
     <style>
-        :root {
-            --primary: #ff5722;
-            --secondary: #ffb300;
-            --dark: #0f172a;
-            --light: #f8fafc;
-            --accent: #10b981;
-            --danger: #ef4444;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; font-family: 'Segoe UI', Roboto, sans-serif; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: var(--dark); color: var(--light); }
-        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
-        canvas { display: block; background: #1e293b; }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); z-index: 10; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0f172a; font-family: sans-serif; color: #f8fafc; }
+        #game-container { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        canvas { display: block; background: #1e293b; width: 100%; height: 100%; }
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.95); z-index: 10; padding: 20px; text-align: center; }
         .hidden { display: none !important; }
-        .card { background: rgba(30, 41, 59, 0.95); border: 2px solid var(--primary); border-radius: 16px; padding: 20px; max-width: 900px; width: 92%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.6); text-align: center; }
-        h1 { font-size: 2.2rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
-        h2 { font-size: 1.3rem; color: var(--primary); margin: 12px 0; }
-        .btn { background: linear-gradient(135deg, var(--primary), #e64a19); color: white; border: none; padding: 10px 20px; font-size: 0.9rem; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 5px; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .btn-secondary { background: linear-gradient(135deg, #475569, #334155); }
-        .btn-success { background: linear-gradient(135deg, var(--accent), #059669); }
-        .grid-select { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 12px 0; }
-        .select-card { background: rgba(51, 65, 85, 0.6); border: 2px solid transparent; border-radius: 12px; padding: 12px; cursor: pointer; text-align: left; transition: 0.2s; }
-        .select-card.active { border-color: var(--secondary); background: rgba(51, 65, 85, 0.95); }
-        .select-card h3 { color: var(--secondary); font-size: 1rem; margin-bottom: 3px; }
-        .select-card p { font-size: 0.78rem; color: #cbd5e1; }
-        .status-bar { position: absolute; top: 15px; left: 15px; background: rgba(15, 23, 42, 0.85); padding: 10px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); }
-        .bar { width: 150px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 4px; }
-        .bar-fill { height: 100%; width: 100%; background: var(--accent); }
-        #storm-timer { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.85); padding: 8px 16px; border-radius: 20px; border: 2px solid var(--secondary); font-weight: bold; color: var(--secondary); font-size: 0.85rem; }
-        .qr-box { background: white; padding: 10px; border-radius: 8px; display: inline-block; margin: 8px 0; }
-        .pix-code { background: #1e293b; color: #cbd5e1; padding: 8px; border-radius: 6px; font-size: 0.7rem; word-break: break-all; margin: 8px 0; border: 1px dashed var(--secondary); }
+        .btn { background: #10b981; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; cursor: pointer; margin: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 80%; max-width: 300px; }
+        .btn-pix { background: #0284c7; }
+        h1 { font-size: 2.2rem; margin-bottom: 10px; color: #38bdf8; text-transform: uppercase; letter-spacing: 2px; }
+        p { margin-bottom: 20px; color: #94a3b8; font-size: 1rem; }
+        .biomes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; margin-bottom: 20px; }
+        .biome-card { background: #334155; border: 2px solid #475569; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; }
+        .biome-card.selected { border-color: #10b981; background: #064e3b; }
+        #hud { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; font-size: 1.1rem; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
     </style>
 </head>
 <body>
+
     <div id="game-container">
+        <!-- Tela Principal / Menu -->
+        <div id="main-screen" class="screen">
+            <h1>Fire Zone Brasil</h1>
+            <p>Battle Royale PWA - 100% Brasileiro</p>
+            
+            <p style="font-size: 0.9rem; margin-bottom: 5px;">Escolha seu Bioma:</p>
+            <div class="biomes">
+                <div class="biome-card selected" onclick="selectBiome('Amazônia', this)">Amazônia</div>
+                <div class="biome-card" onclick="selectBiome('Cerrado', this)">Cerrado</div>
+                <div class="biome-card" onclick="selectBiome('Caatinga', this)">Caatinga</div>
+                <div class="biome-card" onclick="selectBiome('Pantanal', this)">Pantanal</div>
+            </div>
+
+            <button class="btn" onclick="startGame()">JOGAR AGORA</button>
+            <button class="btn btn-pix" onclick="openPixShop()">LOJA PIX</button>
+        </div>
+
+        <!-- Tela da Loja Pix -->
+        <div id="pix-screen" class="screen hidden">
+            <h1>Loja Pix</h1>
+            <p>Compre Diamantes instantaneamente via Pix automático.</p>
+            <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; width: 90%; max-width: 350px;">
+                <p style="color: #f8fafc; font-size: 1.2rem; margin-bottom: 10px;">💎 1.000 Diamantes</p>
+                <p style="color: #10b981; font-size: 1.5rem; font-weight: bold; margin-bottom: 15px;">R$ 10,00</p>
+                <button class="btn btn-pix" onclick="generatePixCode()" style="width: 100%; margin: 0;">Gerar Pix Copia e Cola</button>
+                <p id="pix-status" style="margin-top: 15px; font-size: 0.85rem; word-break: break-all;"></p>
+            </div>
+            <button class="btn" onclick="closePixShop()" style="background: #64748b;">Voltar</button>
+        </div>
+
+        <!-- HUD do Jogo -->
+        <div id="hud" class="hidden">
+            <div id="hud-stats">Vivo: 30 | Kills: 0</div>
+            <div id="hud-zone" style="color: #ef4444;">Zona: 30s</div>
+        </div>
+
+        <!-- Canvas do Jogo -->
         <canvas id="gameCanvas"></canvas>
-        <div id="game-hud" class="hidden">
-            <div class="status-bar">
-                <div>HP: <span id="hp-text">100/100</span></div>
-                <div class="bar"><div id="hp-bar" class="bar-fill"></div></div>
-                <div style="margin-top: 5px; font-size: 0.75rem;">Diamantes: <span id="hud-diamonds" style="color: var(--secondary);">100</span></div>
-            </div>
-            <div id="storm-timer">Tempestade em: <span id="timer-val">30</span>s</div>
-        </div>
-        <div id="menu-overlay" class="overlay">
-            <div class="card">
-                <h1>Fire Zone Brasil</h1>
-                <p>Battle Royale PWA - 100% Brasileiro</p>
-                <h2>Escolha seu Bioma</h2>
-                <div class="grid-select" id="biome-selector">
-                    <div class="select-card active" data-biome="amazonia"><h3>Amazônia</h3><p>Selva fechada e rios.</p></div>
-                    <div class="select-card" data-biome="cerrado"><h3>Cerrado</h3><p>Solo avermelhado e savana.</p></div>
-                    <div class="select-card" data-biome="caatinga"><h3>Caatinga</h3><p>Sertão árido e cactos.</p></div>
-                    <div class="select-card" data-biome="mata_atlantica"><h3>Mata Atlântica</h3><p>Serras e litoral.</p></div>
-                    <div class="select-card" data-biome="pantanal"><h3>Pantanal</h3><p>Planícies alagadas.</p></div>
-                    <div class="select-card" data-biome="pampa"><h3>Pampa</h3><p>Coxilhas verdes.</p></div>
-                </div>
-                <div>
-                    <button class="btn btn-success" id="btn-start">Jogar Agora</button>
-                    <button class="btn btn-secondary" id="btn-open-shop">Loja Pix</button>
-                </div>
-            </div>
-        </div>
-        <div id="shop-overlay" class="overlay hidden">
-            <div class="card">
-                <h2>Recarga Direta via Pix</h2>
-                <div class="grid-select">
-                    <div class="select-card"><h3>100 Diamantes</h3><p>R$ 4,90</p><button class="btn btn-success buy-btn" data-amount="100" data-price="4.90">Gerar Pix</button></div>
-                    <div class="select-card"><h3>550 Diamantes</h3><p>R$ 19,90</p><button class="btn btn-success buy-btn" data-amount="550" data-price="19.90">Gerar Pix</button></div>
-                </div>
-                <button class="btn btn-secondary" id="btn-close-shop">Fechar</button>
-            </div>
-        </div>
-        <div id="pix-modal-overlay" class="overlay hidden">
-            <div class="card" style="max-width: 400px;">
-                <h2>Pagamento Pix</h2>
-                <div class="qr-box"><img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=FireZoneBrasilPix" alt="QR Code" width="140" height="140"></div>
-                <div class="pix-code">00020126360014BR.GOV.BCB.PIX0114+550000000000052040000530398654044.90</div>
-                <button class="btn btn-success" id="btn-confirm-pix">Confirmar Recarga (Demo)</button>
-                <button class="btn btn-secondary" id="btn-cancel-pix">Cancelar</button>
-            </div>
-        </div>
     </div>
+
     <script>
-        const state = { biome: 'amazonia', diamonds: 100, inGame: false, currentPixAmount: 0 };
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resize(); window.addEventListener('resize', resize);
-        document.querySelectorAll('#biome-selector .select-card').forEach(c => {
-            c.onclick = () => { document.querySelectorAll('#biome-selector .select-card').forEach(x => x.classList.remove('active')); c.classList.add('active'); state.biome = c.dataset.biome; };
+        
+        let gameRunning = false;
+        let player = { x: 0, y: 0, radius: 15, color: '#38bdf8', speed: 4 };
+        let keys = { w: false, a: false, s: false, d: false, up: false, left: false, down: false, right: false };
+        let touchX = null, touchY = null;
+        let selectedBiomeName = 'Amazônia';
+        let zoneTimer = 30;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function selectBiome(name, element) {
+            document.querySelectorAll('.biome-card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedBiomeName = name;
+        }
+
+        function openPixShop() {
+            document.getElementById('main-screen').classList.add('hidden');
+            document.getElementById('pix-screen').classList.remove('hidden');
+        }
+
+        function closePixShop() {
+            document.getElementById('pix-screen').classList.add('hidden');
+            document.getElementById('main-screen').classList.remove('hidden');
+        }
+
+        function generatePixCode() {
+            const statusEl = document.getElementById('pix-status');
+            statusEl.style.color = '#38bdf8';
+            statusEl.innerText = "Chave Pix Copia e Cola Gerada (Simulação):\n00020126580014br.gov.bcb.pix...";
+        }
+
+        function startGame() {
+            document.getElementById('main-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            gameRunning = true;
+            loop();
+        }
+
+        // Controles Touch / Mobile
+        window.addEventListener('touchmove', (e) => {
+            if(!gameRunning) return;
+            const touch = e.touches[0];
+            touchX = touch.clientX;
+            touchY = touch.clientY;
         });
-        document.getElementById('btn-open-shop').onclick = () => document.getElementById('shop-overlay').classList.remove('hidden');
-        document.getElementById('btn-close-shop').onclick = () => document.getElementById('shop-overlay').classList.add('hidden');
-        document.querySelectorAll('.buy-btn').forEach(btn => {
-            btn.onclick = () => { state.currentPixAmount = parseInt(btn.dataset.amount); document.getElementById('pix-modal-overlay').classList.remove('hidden'); };
+
+        window.addEventListener('touchend', () => {
+            touchX = null;
+            touchY = null;
         });
-        document.getElementById('btn-cancel-pix').onclick = () => document.getElementById('pix-modal-overlay').classList.add('hidden');
-        document.getElementById('btn-confirm-pix').onclick = () => {
-            state.diamonds += state.currentPixAmount; document.getElementById('hud-diamonds').innerText = state.diamonds;
-            alert(`Aprovado! +${state.currentPixAmount} Diamantes.`);
-            document.getElementById('pix-modal-overlay').classList.add('hidden'); document.getElementById('shop-overlay').classList.add('hidden');
-        };
-        document.getElementById('btn-start').onclick = () => {
-            document.getElementById('menu-overlay').classList.add('hidden'); document.getElementById('game-hud').classList.remove('hidden'); state.inGame = true; runGame();
-        };
-        function runGame() {
-            let stormTimer = 30;
-            setInterval(() => { if(state.inGame && stormTimer > 0) { stormTimer--; document.getElementById('timer-val').innerText = stormTimer; } }, 1000);
-            function draw() {
-                if (!state.inGame) return;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                const colors = { amazonia: '#1b4332', cerrado: '#9a3412', caatinga: '#78350f', mata_atlantica: '#15803d', pantanal: '#0e7490', pampa: '#4d7c0f' };
-                ctx.fillStyle = colors[state.biome] || '#1e293b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, 22, 0, Math.PI * 2); ctx.fillStyle = '#ffb300'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
-                requestAnimationFrame(draw);
+
+        function update() {
+            if (!gameRunning) return;
+
+            // Movimentação por toque ou teclado
+            if (touchX !== null && touchY !== null) {
+                let dx = touchX - player.x;
+                let dy = touchY - player.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist > 2) {
+                    player.x += (dx / dist) * player.speed;
+                    player.y += (dy / dist) * player.speed;
+                }
             }
+
+            // Limites da Tela
+            if (player.x < player.radius) player.x = player.radius;
+            if (player.x > canvas.width - player.radius) player.x = canvas.width - player.radius;
+            if (player.y < player.radius) player.y = player.radius;
+            if (player.y > canvas.height - player.radius) player.y = player.radius;
+        }
+
+        function draw() {
+            // Fundo dinâmico por Bioma
+            ctx.fillStyle = selectedBiomeName === 'Cerrado' ? '#78350f' : 
+                            selectedBiomeName === 'Caatinga' ? '#ca8a04' : 
+                            selectedBiomeName === 'Pantanal' ? '#164e63' : '#064e3b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Desenhar Jogador
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        function loop() {
+            if (!gameRunning) return;
+            update();
             draw();
+            requestAnimationFrame(loop);
         }
     </script>
 </body>
