@@ -1,176 +1,159 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt‑BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Fire Zone Brasil - Battle Royale PWA</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #0f172a; font-family: sans-serif; color: #f8fafc; }
-        #game-container { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        canvas { display: block; background: #1e293b; width: 100%; height: 100%; }
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.95); z-index: 10; padding: 20px; text-align: center; }
-        .hidden { display: none !important; }
-        .btn { background: #10b981; color: white; border: none; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; cursor: pointer; margin: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 80%; max-width: 300px; }
-        .btn-pix { background: #0284c7; }
-        h1 { font-size: 2.2rem; margin-bottom: 10px; color: #38bdf8; text-transform: uppercase; letter-spacing: 2px; }
-        p { margin-bottom: 20px; color: #94a3b8; font-size: 1rem; }
-        .biomes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; margin-bottom: 20px; }
-        .biome-card { background: #334155; border: 2px solid #475569; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; }
-        .biome-card.selected { border-color: #10b981; background: #064e3b; }
-        #hud { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; font-size: 1.1rem; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
-    </style>
+<meta charset="UTF‑8">
+<meta name="viewport" content="width=device‑width, initial‑scale=1.0, maximum‑scale=1.0, user‑scalable=no">
+<title>Batalha das Matas</title>
+<style>
+*{margin:0;padding:0;box‑sizing:border‑box}
+body{background:#000;overflow:hidden;touch‑action:none}
+#tela{display:block;background:#87ceeb}
+#controles{position:absolute;bottom:10px;left:10px;display:grid;grid‑template‑columns:45px 45px 45px;gap:4px}
+#tiro{position:absolute;bottom:10px;right:10px;width:60px;height:60px;border‑radius:50%;background:#ff4444;color:#fff;font‑size:18px;border:none}
+.botao{width:45px;height:45px;background:#ffffffaa;border:none;border‑radius:6px;font‑size:20px}
+</style>
 </head>
 <body>
+<canvas id="tela"></canvas>
+<div id="controles">
+  <div></div>
+  <button class="botao" id="cima">↑</button>
+  <div></div>
+  <button class="botao" id="esq">←</button>
+  <button class="botao" id="baixo">↓</button>
+  <button class="botao" id="dir">→</button>
+</div>
+<button id="tiro">TIRO</button>
+<script>
+const tela = document.getElementById("tela");
+const ctx = tela.getContext("2d");
+tela.width = 360; tela.height = 640;
 
-    <div id="game-container">
-        <!-- Tela Principal / Menu -->
-        <div id="main-screen" class="screen">
-            <h1>Fire Zone Brasil</h1>
-            <p>Battle Royale PWA - 100% Brasileiro</p>
-            
-            <p style="font-size: 0.9rem; margin-bottom: 5px;">Escolha seu Bioma:</p>
-            <div class="biomes">
-                <div class="biome-card selected" onclick="selectBiome('Amazônia', this)">Amazônia</div>
-                <div class="biome-card" onclick="selectBiome('Cerrado', this)">Cerrado</div>
-                <div class="biome-card" onclick="selectBiome('Caatinga', this)">Caatinga</div>
-                <div class="biome-card" onclick="selectBiome('Pantanal', this)">Pantanal</div>
-            </div>
+// Biomas do mapa
+const biomas = [
+  {nome:"Cerrado",cor:"#c9b37e",x:0,y:0,w:180,h:320},
+  {nome:"Amazônia",cor:"#2a5934",x:180,y:0,w:180,h:320},
+  {nome:"Pantanal",cor:"#6399b3",x:0,y:320,w:180,h:320},
+  {nome:"Mata Atlântica",cor:"#3a7040",x:180,y:320,w:180,h:320}
+];
 
-            <button class="btn" onclick="startGame()">JOGAR AGORA</button>
-            <button class="btn btn-pix" onclick="openPixShop()">LOJA PIX</button>
-        </div>
+// Jogador
+const jogador = {x:180,y:320,tam:22,vel:3.5,vida:100};
+let direcao = {cima:false,baixo:false,esq:false,dir:false};
+let projeteis = [];
+let inimigos = [];
+let zona = {x:0,y:0,w:360,h:640,reduz:0.12};
+let fimJogo = false;
 
-        <!-- Tela da Loja Pix -->
-        <div id="pix-screen" class="screen hidden">
-            <h1>Loja Pix</h1>
-            <p>Compre Diamantes instantaneamente via Pix automático.</p>
-            <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; width: 90%; max-width: 350px;">
-                <p style="color: #f8fafc; font-size: 1.2rem; margin-bottom: 10px;">💎 1.000 Diamantes</p>
-                <p style="color: #10b981; font-size: 1.5rem; font-weight: bold; margin-bottom: 15px;">R$ 10,00</p>
-                <button class="btn btn-pix" onclick="generatePixCode()" style="width: 100%; margin: 0;">Gerar Pix Copia e Cola</button>
-                <p id="pix-status" style="margin-top: 15px; font-size: 0.85rem; word-break: break-all;"></p>
-            </div>
-            <button class="btn" onclick="closePixShop()" style="background: #64748b;">Voltar</button>
-        </div>
+// Botões do celular
+document.getElementById("cima").addEventListener("touchstart",()=>direcao.cima=true);
+document.getElementById("cima").addEventListener("touchend",()=>direcao.cima=false);
+document.getElementById("baixo").addEventListener("touchstart",()=>direcao.baixo=true);
+document.getElementById("baixo").addEventListener("touchend",()=>direcao.baixo=false);
+document.getElementById("esq").addEventListener("touchstart",()=>direcao.esq=true);
+document.getElementById("esq").addEventListener("touchend",()=>direcao.esq=false);
+document.getElementById("dir").addEventListener("touchstart",()=>direcao.dir=true);
+document.getElementById("dir").addEventListener("touchend",()=>direcao.dir=false);
+document.getElementById("tiro").addEventListener("touchstart",()=>{
+  if(fimJogo) return;
+  projeteis.push({x:jogador.x,y:jogador.y‑12,vel:‑6,tam:6});
+});
 
-        <!-- HUD do Jogo -->
-        <div id="hud" class="hidden">
-            <div id="hud-stats">Vivo: 30 | Kills: 0</div>
-            <div id="hud-zone" style="color: #ef4444;">Zona: 30s</div>
-        </div>
+// Criar inimigos
+function criarInimigo(){
+  const lado = Math.floor(Math.random()*4);
+  let ix,iy;
+  if(lado===0){ix=0;iy=Math.random()*640}
+  else if(lado===1){ix=360;iy=Math.random()*640}
+  else if(lado===2){ix=Math.random()*360;iy=0}
+  else {ix=Math.random()*360;iy=640}
+  inimigos.push({x:ix,y:iy,tam:20,vel:1.2,vida:30});
+}
 
-        <!-- Canvas do Jogo -->
-        <canvas id="gameCanvas"></canvas>
-    </div>
+// Atualizar tudo
+function atualizar(){
+  if(fimJogo) return;
+  // Movimento jogador
+  if(direcao.cima) jogador.y -= jogador.vel;
+  if(direcao.baixo) jogador.y += jogador.vel;
+  if(direcao.esq) jogador.x -= jogador.vel;
+  if(direcao.dir) jogador.x += jogador.vel;
+  // Limite da zona
+  jogador.x = Math.max(zona.x, Math.min(zona.x+zona.w‑jogador.tam, jogador.x));
+  jogador.y = Math.max(zona.y, Math.min(zona.y+zona.h‑jogador.tam, jogador.y));
+  // Reduzir zona
+  zona.w -= zona.reduz; zona.h -= zona.reduz;
+  zona.x += zona.reduz/2; zona.y += zona.reduz/2;
+  // Projéteis
+  for(let p of projeteis) p.y += p.vel;
+  projeteis = projeteis.filter(p=>p.y>0);
+  // Inimigos
+  for(let i of inimigos){
+    let dx = jogador.x‑i.x;
+    let dy = jogador.y‑i.y;
+    let dist = Math.sqrt(dx*dx+dy*dy);
+    if(dist>0){i.x += (dx/dist)*i.vel; i.y += (dy/dist)*i.vel}
+  }
+  // Colisão tiro‑inimigo
+  for(let p of projeteis){
+    for(let i of inimigos){
+      let d = Math.sqrt((p.x‑i.x)**2+(p.y‑i.y)**2);
+      if(d<18){i.vida -=15; p.y=‑100}
+    }
+  }
+  inimigos = inimigos.filter(i=>i.vida>0);
+  // Colisão inimigo‑jogador
+  for(let i of inimigos){
+    let d = Math.sqrt((jogador.x‑i.x)**2+(jogador.y‑i.y)**2);
+    if(d<22) jogador.vida -=0.3;
+  }
+  // Fim de jogo
+  if(jogador.vida <=0) fimJogo=true;
+}
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        let gameRunning = false;
-        let player = { x: 0, y: 0, radius: 15, color: '#38bdf8', speed: 4 };
-        let keys = { w: false, a: false, s: false, d: false, up: false, left: false, down: false, right: false };
-        let touchX = null, touchY = null;
-        let selectedBiomeName = 'Amazônia';
-        let zoneTimer = 30;
+// Desenhar tudo
+function desenhar(){
+  ctx.clearRect(0,0,tela.width,tela.height);
+  // Biomas
+  biomas.forEach(b=>{
+    ctx.fillStyle = b.cor;
+    ctx.fillRect(b.x,b.y,b.w,b.h);
+    ctx.fillStyle="#fff";
+    ctx.font="12px sans‑serif";
+    ctx.fillText(b.nome,b.x+8,b.y+20);
+  });
+  // Zona segura
+  ctx.strokeStyle="#ffdd00";
+  ctx.lineWidth=3;
+  ctx.strokeRect(zona.x,zona.y,zona.w,zona.h);
+  // Jogador
+  ctx.fillStyle="#ff4444";
+  ctx.fillRect(jogador.x‑jogador.tam/2, jogador.y‑jogador.tam/2, jogador.tam, jogador.tam);
+  // Projéteis
+  ctx.fillStyle="#ffff00";
+  for(let p of projeteis) ctx.beginPath(), ctx.arc(p.x,p.y,p.tam,0,Math.PI*2), ctx.fill();
+  // Inimigos
+  ctx.fillStyle="#222222";
+  for(let i of inimigos) ctx.fillRect(i.x‑i.tam/2,i.y‑i.tam/2,i.tam,i.tam);
+  // Vida
+  ctx.fillStyle="#fff";
+  ctx.font="14px sans‑serif";
+  ctx.fillText(`Vida: ${Math.round(jogador.vida)}`,10,30);
+  if(fimJogo){
+    ctx.fillStyle="#ff2222";
+    ctx.font="22px sans‑serif";
+    ctx.fillText("GAME OVER",110,300);
+  }
+}
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        function selectBiome(name, element) {
-            document.querySelectorAll('.biome-card').forEach(c => c.classList.remove('selected'));
-            element.classList.add('selected');
-            selectedBiomeName = name;
-        }
-
-        function openPixShop() {
-            document.getElementById('main-screen').classList.add('hidden');
-            document.getElementById('pix-screen').classList.remove('hidden');
-        }
-
-        function closePixShop() {
-            document.getElementById('pix-screen').classList.add('hidden');
-            document.getElementById('main-screen').classList.remove('hidden');
-        }
-
-        function generatePixCode() {
-            const statusEl = document.getElementById('pix-status');
-            statusEl.style.color = '#38bdf8';
-            statusEl.innerText = "Chave Pix Copia e Cola Gerada (Simulação):\n00020126580014br.gov.bcb.pix...";
-        }
-
-        function startGame() {
-            document.getElementById('main-screen').classList.add('hidden');
-            document.getElementById('hud').classList.remove('hidden');
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            gameRunning = true;
-            loop();
-        }
-
-        // Controles Touch / Mobile
-        window.addEventListener('touchmove', (e) => {
-            if(!gameRunning) return;
-            const touch = e.touches[0];
-            touchX = touch.clientX;
-            touchY = touch.clientY;
-        });
-
-        window.addEventListener('touchend', () => {
-            touchX = null;
-            touchY = null;
-        });
-
-        function update() {
-            if (!gameRunning) return;
-
-            // Movimentação por toque ou teclado
-            if (touchX !== null && touchY !== null) {
-                let dx = touchX - player.x;
-                let dy = touchY - player.y;
-                let dist = Math.hypot(dx, dy);
-                if (dist > 2) {
-                    player.x += (dx / dist) * player.speed;
-                    player.y += (dy / dist) * player.speed;
-                }
-            }
-
-            // Limites da Tela
-            if (player.x < player.radius) player.x = player.radius;
-            if (player.x > canvas.width - player.radius) player.x = canvas.width - player.radius;
-            if (player.y < player.radius) player.y = player.radius;
-            if (player.y > canvas.height - player.radius) player.y = player.radius;
-        }
-
-        function draw() {
-            // Fundo dinâmico por Bioma
-            ctx.fillStyle = selectedBiomeName === 'Cerrado' ? '#78350f' : 
-                            selectedBiomeName === 'Caatinga' ? '#ca8a04' : 
-                            selectedBiomeName === 'Pantanal' ? '#164e63' : '#064e3b';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Desenhar Jogador
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-            ctx.fillStyle = player.color;
-            ctx.fill();
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#ffffff';
-            ctx.stroke();
-            ctx.closePath();
-        }
-
-        function loop() {
-            if (!gameRunning) return;
-            update();
-            draw();
-            requestAnimationFrame(loop);
-        }
-    </script>
+// Loop do jogo
+setInterval(criarInimigo,2200);
+function loop(){
+  atualizar();
+  desenhar();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
 </body>
 </html>
