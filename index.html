@@ -6,10 +6,10 @@
 <title>Batalha das Matas</title>
 <style>
 *{margin:0;padding:0;box‑sizing:border‑box}
-body{background:#000;overflow:hidden;touch‑action:none}
-#tela{display:block;background:#87ceeb}
-#controles{position:absolute;bottom:10px;left:10px;display:grid;grid‑template‑columns:45px 45px 45px;gap:4px}
-#tiro{position:absolute;bottom:10px;right:10px;width:60px;height:60px;border‑radius:50%;background:#ff4444;color:#fff;font‑size:18px;border:none}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;touch‑action:none}
+#tela{display:block;width:100%;height:calc(100%‑140px);background:#87ceeb}
+#controles{position:fixed;bottom:10px;left:10px;display:grid;grid‑template‑columns:45px 45px 45px;gap:4px}
+#tiro{position:fixed;bottom:10px;right:10px;width:60px;height:60px;border‑radius:50%;background:#ff4444;color:#fff;font‑size:18px;border:none}
 .botao{width:45px;height:45px;background:#ffffffaa;border:none;border‑radius:6px;font‑size:20px}
 </style>
 </head>
@@ -27,25 +27,36 @@ body{background:#000;overflow:hidden;touch‑action:none}
 <script>
 const tela = document.getElementById("tela");
 const ctx = tela.getContext("2d");
-tela.width = 360; tela.height = 640;
+function ajustarTela(){
+  tela.width = tela.clientWidth;
+  tela.height = tela.clientHeight;
+}
+ajustarTela();
+window.addEventListener("resize",ajustarTela);
 
 // Biomas do mapa
-const biomas = [
-  {nome:"Cerrado",cor:"#c9b37e",x:0,y:0,w:180,h:320},
-  {nome:"Amazônia",cor:"#2a5934",x:180,y:0,w:180,h:320},
-  {nome:"Pantanal",cor:"#6399b3",x:0,y:320,w:180,h:320},
-  {nome:"Mata Atlântica",cor:"#3a7040",x:180,y:320,w:180,h:320}
-];
+let biomas = [];
+function montarBiomas(){
+  const w = tela.width;
+  const h = tela.height;
+  biomas = [
+    {nome:"Cerrado",cor:"#c9b37e",x:0,y:0,w:w/2,h:h/2},
+    {nome:"Amazônia",cor:"#2a5934",x:w/2,y:0,w:w/2,h:h/2},
+    {nome:"Pantanal",cor:"#6399b3",x:0,y:h/2,w:w/2,h:h/2},
+    {nome:"Mata Atlântica",cor:"#3a7040",x:w/2,y:h/2,w:w/2,h:h/2}
+  ];
+}
+montarBiomas();
 
 // Jogador
-const jogador = {x:180,y:320,tam:22,vel:3.5,vida:100};
+const jogador = {x:tela.width/2,y:tela.height/2,tam:22,vel:3.5,vida:100};
 let direcao = {cima:false,baixo:false,esq:false,dir:false};
 let projeteis = [];
 let inimigos = [];
-let zona = {x:0,y:0,w:360,h:640,reduz:0.12};
+let zona = {x:0,y:0,w:tela.width,h:tela.height,reduz:0.08};
 let fimJogo = false;
 
-// Botões do celular
+// Botões
 document.getElementById("cima").addEventListener("touchstart",()=>direcao.cima=true);
 document.getElementById("cima").addEventListener("touchend",()=>direcao.cima=false);
 document.getElementById("baixo").addEventListener("touchstart",()=>direcao.baixo=true);
@@ -63,38 +74,37 @@ document.getElementById("tiro").addEventListener("touchstart",()=>{
 function criarInimigo(){
   const lado = Math.floor(Math.random()*4);
   let ix,iy;
-  if(lado===0){ix=0;iy=Math.random()*640}
-  else if(lado===1){ix=360;iy=Math.random()*640}
-  else if(lado===2){ix=Math.random()*360;iy=0}
-  else {ix=Math.random()*360;iy=640}
+  if(lado===0){ix=0;iy=Math.random()*tela.height}
+  else if(lado===1){ix=tela.width;iy=Math.random()*tela.height}
+  else if(lado===2){ix=Math.random()*tela.width;iy=0}
+  else {ix=Math.random()*tela.width;iy=tela.height}
   inimigos.push({x:ix,y:iy,tam:20,vel:1.2,vida:30});
 }
 
-// Atualizar tudo
+// Atualizar
 function atualizar(){
   if(fimJogo) return;
-  // Movimento jogador
   if(direcao.cima) jogador.y -= jogador.vel;
   if(direcao.baixo) jogador.y += jogador.vel;
   if(direcao.esq) jogador.x -= jogador.vel;
   if(direcao.dir) jogador.x += jogador.vel;
-  // Limite da zona
+
   jogador.x = Math.max(zona.x, Math.min(zona.x+zona.w‑jogador.tam, jogador.x));
   jogador.y = Math.max(zona.y, Math.min(zona.y+zona.h‑jogador.tam, jogador.y));
-  // Reduzir zona
+
   zona.w -= zona.reduz; zona.h -= zona.reduz;
   zona.x += zona.reduz/2; zona.y += zona.reduz/2;
-  // Projéteis
+
   for(let p of projeteis) p.y += p.vel;
   projeteis = projeteis.filter(p=>p.y>0);
-  // Inimigos
+
   for(let i of inimigos){
     let dx = jogador.x‑i.x;
     let dy = jogador.y‑i.y;
     let dist = Math.sqrt(dx*dx+dy*dy);
     if(dist>0){i.x += (dx/dist)*i.vel; i.y += (dy/dist)*i.vel}
   }
-  // Colisão tiro‑inimigo
+
   for(let p of projeteis){
     for(let i of inimigos){
       let d = Math.sqrt((p.x‑i.x)**2+(p.y‑i.y)**2);
@@ -102,19 +112,18 @@ function atualizar(){
     }
   }
   inimigos = inimigos.filter(i=>i.vida>0);
-  // Colisão inimigo‑jogador
+
   for(let i of inimigos){
     let d = Math.sqrt((jogador.x‑i.x)**2+(jogador.y‑i.y)**2);
     if(d<22) jogador.vida -=0.3;
   }
-  // Fim de jogo
+
   if(jogador.vida <=0) fimJogo=true;
 }
 
-// Desenhar tudo
+// Desenhar
 function desenhar(){
   ctx.clearRect(0,0,tela.width,tela.height);
-  // Biomas
   biomas.forEach(b=>{
     ctx.fillStyle = b.cor;
     ctx.fillRect(b.x,b.y,b.w,b.h);
@@ -122,31 +131,31 @@ function desenhar(){
     ctx.font="12px sans‑serif";
     ctx.fillText(b.nome,b.x+8,b.y+20);
   });
-  // Zona segura
+
   ctx.strokeStyle="#ffdd00";
   ctx.lineWidth=3;
   ctx.strokeRect(zona.x,zona.y,zona.w,zona.h);
-  // Jogador
+
   ctx.fillStyle="#ff4444";
   ctx.fillRect(jogador.x‑jogador.tam/2, jogador.y‑jogador.tam/2, jogador.tam, jogador.tam);
-  // Projéteis
+
   ctx.fillStyle="#ffff00";
   for(let p of projeteis) ctx.beginPath(), ctx.arc(p.x,p.y,p.tam,0,Math.PI*2), ctx.fill();
-  // Inimigos
+
   ctx.fillStyle="#222222";
   for(let i of inimigos) ctx.fillRect(i.x‑i.tam/2,i.y‑i.tam/2,i.tam,i.tam);
-  // Vida
+
   ctx.fillStyle="#fff";
   ctx.font="14px sans‑serif";
   ctx.fillText(`Vida: ${Math.round(jogador.vida)}`,10,30);
+
   if(fimJogo){
     ctx.fillStyle="#ff2222";
     ctx.font="22px sans‑serif";
-    ctx.fillText("GAME OVER",110,300);
+    ctx.fillText("GAME OVER",tela.width/2‑80,tela.height/2);
   }
 }
 
-// Loop do jogo
 setInterval(criarInimigo,2200);
 function loop(){
   atualizar();
